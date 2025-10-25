@@ -214,7 +214,7 @@
             <!-- Left: Create & Table -->
             <div class="col-lg-8">
                 <div class=" shadow-sm p-4 mb-4">
-                    <h2 class="mb-4 text-center"><i class="bi bi-check2-square me-2"></i>CareComp Tasks</h2>
+                    <h2 class="mb-4 text-center"><i class="bi bi-check2-square me-2"></i> Todo</h2>
 
                     <!-- Create Task -->
                     <div class="row g-2 mb-3 align-items-center">
@@ -242,8 +242,16 @@
                         </div>
                     </div>
 
+                    <div class="d-flex justify-content-end mb-2">
+                        <a href="#" id="export_stats" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-file-earmark-text me-1"></i> Export Status
+                        </a>
+                    </div>
+
+
                     <!-- Tasks Table -->
                     <div id="tasks_table"></div>
+
                 </div>
             </div>
 
@@ -388,28 +396,36 @@
             // ============================
             // Edit task inline
             // ============================
-            $('#tasks_table').on('keypress change', '.edit_input', function(e) {
+            // Inline edit task
+            $('#tasks_table').on('keypress', '.edit_title, .edit_website, .edit_priority', function(e) {
+                if (e.which !== 13) return; // Only Enter key triggers
+
                 const row = $(this).closest('tr');
                 const id = row.data('id');
-                const title = row.find('.edit_title').val();
-                const status = row.find('.edit_status').val();
+                const title = row.find('.edit_title').val().trim();
                 const priority = row.find('.edit_priority').val();
-                const website = row.find('.edit_website').val();
-
-                if (e.type === 'keypress' && e.which !== 13) return;
+                const website = row.find('.edit_website').val().trim();
+                const status = row.find('.toggle-status').is(':checked') ? 'completed' : 'pending';
 
                 $.post('tasks_ajax.php', {
                     action: 'edit',
                     id,
                     title,
-                    status,
                     priority,
-                    website
-                }, function() {
-                    fetchTasks();
-                    fetchSummary();
+                    website,
+                    status
+                }, function(res) {
+                    if (res.trim() === 'success') {
+                        // Update status text and details without full reload
+                        row.find('.status-text').text(status.charAt(0).toUpperCase() + status.slice(1));
+                        row.removeClass('priority-High priority-Medium priority-Low')
+                            .addClass('priority-' + priority);
+                    } else {
+                        alert('Failed to update task');
+                    }
                 });
             });
+
 
             // ============================
             // Delete task
@@ -454,6 +470,45 @@
                     $('#summary_section').html(data);
                 });
             }
+
+            $(document).ready(function() {
+                $('#export_stats').click(function(e) {
+                    e.preventDefault();
+                    window.location.href = 'task_export.php?type=stats';
+                });
+            });
+
+            // Toggle task status
+            $(document).on('change', '.toggle-status', function() {
+                const checkbox = $(this);
+                const id = checkbox.data('id');
+                const newStatus = checkbox.is(':checked') ? 'completed' : 'pending';
+
+                $.ajax({
+                    url: 'tasks_ajax.php',
+                    type: 'POST',
+                    data: {
+                        action: 'markcomplete',
+                        id: id,
+                        status: newStatus
+                    },
+                    success: function(response) {
+                        if (response.trim() === 'success') {
+                            // Refresh the table after status update
+                            fetchTasks(); // Your existing function to reload tasks
+                            fetchSummary(); // Update summary counts
+                        } else {
+                            alert('Failed to update task status.');
+                            checkbox.prop('checked', !checkbox.is(':checked'));
+                        }
+                    },
+                    error: function() {
+                        alert('Failed to update task status.');
+                        checkbox.prop('checked', !checkbox.is(':checked'));
+                    }
+                });
+            });
+
         });
     </script>
 
