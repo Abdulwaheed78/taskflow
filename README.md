@@ -62,13 +62,16 @@ Database Schema
 
 tasks table structure:
 
-Column	Type	Description
-id	INT PK AUTO	Unique task ID
-title	VARCHAR(255)	Task title
-website	VARCHAR(100)	Associated website
-priority	ENUM	Task priority: High, Medium, Low
-status	ENUM	Task status: pending, completed
-created_at	TIMESTAMP	Task creation timestamp
+CREATE TABLE `tasks` (
+  `id` int NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `status` enum('pending','completed') DEFAULT 'pending',
+  `priority` enum('Low','Medium','High') DEFAULT 'Medium',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `website` varchar(255) DEFAULT 'General',
+  `completed_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
 
 You can also seed the database with random tasks for testing (e.g., 20,000 tasks).
 
