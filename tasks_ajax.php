@@ -79,11 +79,13 @@ if ($action == 'create') {
     </td>
     <td class="text-start">
         <input type="checkbox" class="form-check-input toggle-status" data-id="' . $task['id'] . '" ' . ($task['status'] == 'completed' ? 'checked' : '') . '>
-        <span class="status-text">' . ucfirst($task['status']) . '</span>
+<span class="badge text-bg-' . ($task['status'] == 'completed' ? 'success' : 'warning') . '">
+    ' . ucfirst($task['status']) . '
+</span>
     </td>
     <td class="text-center">
-        <button class="icon-btn delete_task" data-id="' . $task['id'] . '" title="Delete Task">
-            <i class="bi bi-trash3"></i>
+        <button class="icon-btn delete_task text-danger " data-id="' . $task['id'] . '" title="Delete Task">
+           <span class="badge text-bg-danger">delete</span>
         </button>
     </td>
 </tr>';
