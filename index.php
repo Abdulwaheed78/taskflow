@@ -9,6 +9,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- ckeditor for title creation -->
+    <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
 
     <style>
         body {
@@ -204,6 +206,29 @@
             border: 1px solid rgba(0, 0, 0, 0.1);
             color: #000;
         }
+
+        #sliderTitle table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        #sliderTitle table td,
+        #sliderTitle table th {
+            border: 1px solid #dee2e6;
+            padding: 6px 8px;
+        }
+
+        #sliderTitle img {
+            max-width: 100%;
+            border-radius: 6px;
+        }
+
+        .task-detail-card {
+            width: 380px;
+            max-width: 420px;
+        }
+
+        /* Priority badge colors stay JS-driven */
     </style>
 </head>
 
@@ -214,38 +239,19 @@
             <!-- Left: Create & Table -->
             <div class="col-lg-8">
                 <div class=" shadow-sm p-4 mb-4">
-                    <h2 class="mb-4 text-center"><i class="bi bi-check2-square me-2"></i> Todo</h2>
+                    <h2 class="mb-4 text-center"><i class="bi bi-check2-square me-2"></i> Manage Tasks</h2>
 
-                    <!-- Create Task -->
-                    <div class="row g-2 mb-3 align-items-center">
-                        <div class="col-md-7">
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-pencil-square text-primary"></i></span>
-                                <input type="text" id="new_title" class="form-control" placeholder="Task & press Enter" autofocus>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-globe2 text-success"></i></span>
-                                <input type="text" id="new_website" class="form-control" placeholder="Website" value="General">
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <div class="input-group">
-                                <span class="input-group-text"><i class="bi bi-flag text-warning"></i></span>
-                                <select id="new_priority" class="form-select">
-                                    <option value="Low" selected>Low</option>
-                                    <option value="Medium">Medium</option>
-                                    <option value="High">High</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="d-flex justify-content-end mb-2">
+                    <div class="d-flex justify-content-end mb-2 gap-3">
                         <a href="#" id="export_stats" class="btn btn-outline-primary btn-sm">
                             <i class="bi bi-file-earmark-text me-1"></i> Export Status
                         </a>
+                        <button class="btn btn-sm btn-outline-success" id="openTaskSlider">
+                            View In Slide
+                        </button>
+                        <button class="btn btn-sm btn-success" id="openCreateTask">
+                            <i class="bi bi-plus-lg me-1"></i> Create Task
+                        </button>
+
                     </div>
 
 
@@ -302,163 +308,486 @@
         </div>
     </div>
 
-    <script>
-        $(document).ready(function() {
-            // Create hover detail card element once
-            const detailCard = $('<div class="task-detail-card"></div>').appendTo('body');
+    <!-- Create Task Modal -->
+    <div class="modal fade" id="createTaskModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content rounded-4 shadow">
 
-            // Handle hover on title input
-            $(document).on('mouseenter', '.edit_title', function(e) {
-                const details = $(this).data('details');
-                detailCard.html(details).fadeIn(150);
-            }).on('mousemove', '.edit_title', function(e) {
-                detailCard.css({
-                    top: e.pageY + 15,
-                    left: e.pageX + 15
+                <div class="modal-header">
+                    <h5 class="modal-title fw-semibold">
+                        <i class="bi bi-plus-circle me-2"></i>Create New Task
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+
+                    <div class="mb-3">
+                        <label class="form-label">Task Title</label>
+                        <textarea id="create_title" class="form-control"></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Website</label>
+                            <input type="text" id="create_website" class="form-control" value="General">
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Priority</label>
+                            <select id="create_priority" class="form-select">
+                                <option value="Low" selected>Low</option>
+                                <option value="Medium">Medium</option>
+                                <option value="High">High</option>
+                            </select>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+                    <button class="btn btn-primary rounded-pill" id="saveNewTask">
+                        Create Task
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Task Modal -->
+    <div class="modal fade" id="editTaskModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 shadow">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-pencil-square me-2"></i>Edit Task
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+                    <input type="hidden" id="edit_id">
+
+                    <div class="mb-3">
+                        <label class="form-label">Title</label>
+                        <textarea id="edit_title" class="form-control"></textarea>
+                        <!-- <input type="text" id="edit_title" class="form-control"> -->
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Website</label>
+                        <input type="text" id="edit_website" class="form-control">
+                    </div>
+                    <div class="row">
+                        <div class=" col-6 mb-3">
+                            <label class="form-label">Priority</label>
+                            <select id="edit_priority" class="form-select">
+                                <option value="Low">Low</option>
+                                <option value="Medium">Medium</option>
+                                <option value="High">High</option>
+                            </select>
+                        </div>
+
+                        <div class="col-6 mb-3">
+                            <label class="form-label">Status</label>
+                            <select id="edit_status" class="form-select">
+                                <option value="pending">Pending</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+                    <button class="btn btn-primary rounded-pill" id="save_task_changes">
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Slider Modal -->
+    <div class="modal fade" id="taskSliderModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content rounded-4 shadow">
+
+                <div class="modal-header">
+                    <h5 class="modal-title fw-semibold">Task Viewer</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+
+                    <!-- Top Meta -->
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span id="sliderCounter" class="text-muted small"></span>
+                        <span id="sliderPriority" class="badge rounded-pill px-3"></span>
+                    </div>
+
+                    <!-- Title Preview -->
+                    <div class="border rounded-3 p-3 mb-4 bg-light" style="min-height:140px;">
+                        <div id="sliderTitle" class="task-title"></div>
+                    </div>
+
+                    <!-- Meta Badges -->
+                    <div class="d-flex flex-wrap gap-2 mb-4">
+                        <span class="badge bg-secondary">
+                            🌐 <span id="sliderWebsite"></span>
+                        </span>
+
+                        <span id="sliderStatus" class="badge rounded-pill px-3">
+                            📌 <span id="sliderStatus"></span>
+                        </span>
+
+                    </div>
+
+                    <!-- Navigation -->
+                    <div class="d-flex justify-content-center gap-3 flex-wrap">
+
+                        <button class="btn btn-outline-secondary px-4" id="sliderPrev">
+                            ← Previous
+                        </button>
+
+                        <button class="btn btn-outline-success px-4" id="sliderMarkDone">
+                            ✓ Mark as Done
+                        </button>
+
+                        <button class="btn btn-outline-primary px-4" id="sliderNext">
+                            Next →
+                        </button>
+
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function () {
+
+            //slider initialization to open only one taskSliderModal
+            let sliderAutoClosed = sessionStorage.getItem('taskSliderClosed') === '1';
+            setTimeout(function () {
+                if (!sliderAutoClosed) {
+                    $('#openTaskSlider').trigger('click');
+                }
+            }, 600);
+
+
+            //initialize the editor for create task 
+            let createModal = new bootstrap.Modal(
+                document.getElementById('createTaskModal')
+            );
+
+            let createEditor = null;
+            ClassicEditor
+                .create(document.querySelector('#create_title'))
+                .then(editor => {
+                    createEditor = editor;
+                })
+                .catch(error => {
+                    console.error('Create CKEditor init failed:', error);
                 });
-            }).on('mouseleave', '.edit_title', function() {
-                detailCard.hide();
+            //open modal
+            $('#openCreateTask').on('click', function () {
+                if (!createEditor) {
+                    alert('Editor is loading, please wait');
+                    return;
+                }
+                createEditor.setData('');
+                $('#create_website').val('General');
+                $('#create_priority').val('Low');
+                createModal.show();
             });
 
-            // Load websites list for filters
+
+            //onsave click save task
+            $('#saveNewTask').on('click', function () {
+
+                if (!createEditor) return;
+
+                const title = createEditor.getData().trim();
+                const website = $('#create_website').val().trim() || 'General';
+                const priority = $('#create_priority').val();
+
+                if (!title) {
+                    alert('Task title is required');
+                    return;
+                }
+
+                $.post('tasks_ajax.php', {
+                    action: 'create',
+                    title,
+                    website,
+                    priority
+                }, function () {
+                    createModal.hide();
+                    fetchTasks(1);
+                    fetchSummary();
+                });
+            });
+
+
+            /* =============================
+               GLOBAL EDIT REFERENCES
+            ============================= */
+            let editModal;
+            let titleEditor = null;
+
+            /* =============================
+               INIT BOOTSTRAP MODAL
+            ============================= */
+            editModal = new bootstrap.Modal(
+                document.getElementById('editTaskModal')
+            );
+
+            /* =============================
+               INIT CKEDITOR (ONCE)
+            ============================= */
+            ClassicEditor
+                .create(document.querySelector('#edit_title'))
+                .then(editor => {
+                    titleEditor = editor;
+                })
+                .catch(error => {
+                    console.error('CKEditor init failed:', error);
+                });
+
+            /* =============================
+               HOVER DETAIL CARD
+            ============================= */
+            const detailCard = $('<div class="task-detail-card"></div>').appendTo('body');
+
+            $(document)
+                .on('mouseenter', '.edit_title', function () {
+                    detailCard.html($(this).data('details')).fadeIn(150);
+                })
+                .on('mousemove', '.edit_title', function (e) {
+                    detailCard.css({
+                        top: e.pageY + 15,
+                        left: e.pageX + 15
+                    });
+                })
+                .on('mouseleave', '.edit_title', function () {
+                    detailCard.hide();
+                });
+
+            /* =============================
+               LOAD FILTER WEBSITES
+            ============================= */
             $.get('tasks_ajax.php', {
                 action: 'websites'
-            }, function(data) {
+            }, function (data) {
                 $('#filter_website').append(data);
             });
 
-            // Fetch tasks and summary initially
+            /* =============================
+               INITIAL LOAD
+            ============================= */
             fetchTasks();
             fetchSummary();
 
-            // ============================
-            // Create new task (Enter key)
-            // ============================
-            $('#new_title').keypress(function(e) {
-                if (e.which == 13) {
-                    const title = $('#new_title').val().trim();
-                    const website = $('#new_website').val().trim() || 'General';
-                    const priority = $('#new_priority').val();
-                    if (title != '') {
-                        $.post('tasks_ajax.php', {
-                            action: 'create',
-                            title,
-                            website,
-                            priority
-                        }, function() {
-                            $('#new_title').val('');
-                            fetchTasks(1);
-                            fetchSummary();
-                        });
-                    }
-                    e.preventDefault();
-                }
-            });
-
-            // ============================
-            // Filters auto-refresh
-            // ============================
-            $('#filter_status, #filter_priority, #filter_website').change(function() {
+            /* =============================
+               FILTERS
+            ============================= */
+            $('#filter_status, #filter_priority, #filter_website').change(function () {
                 fetchTasks(1);
                 fetchSummary();
             });
 
-            // ============================
-            // Search input filter
-            // ============================
-            $('#filter_search').on('keyup', function() {
-                fetchTasks(1); // always start from page 1 when searching
+            $('#filter_search').on('keyup', function () {
+                fetchTasks(1);
             });
 
-            // ============================
-            // Pagination buttons
-            // ============================
-            $(document).on('click', '#tasks_table .page-link', function(e) {
+            /* =============================
+               PAGINATION
+            ============================= */
+            $(document).on('click', '#tasks_table .page-link', function (e) {
                 e.preventDefault();
                 const page = $(this).data('page');
-                if (!page) return; // skip disabled
+                if (page) fetchTasks(page);
+            });
+
+            $(document).on('click', '#goto_page_btn', function () {
+                const page = Math.max(1, parseInt($('#goto_page_input').val()) || 1);
                 fetchTasks(page);
             });
 
-            // ============================
-            // Go-to-page input
-            // ============================
-            $(document).on('click', '#goto_page_btn', function() {
-                let page = parseInt($('#goto_page_input').val());
-                if (!page || page < 1) page = 1;
-                fetchTasks(page);
+            $(document).on('keypress', '#goto_page_input', function (e) {
+                if (e.which === 13) $('#goto_page_btn').click();
             });
 
-            $(document).on('keypress', '#goto_page_input', function(e) {
-                if (e.which == 13) $('#goto_page_btn').click();
+            /* =============================
+               EDIT TASK (MODAL)
+            ============================= */
+            $(document).on('click', '.edit_task', function () {
+
+                if (!titleEditor) {
+                    alert('Editor is still loading. Please wait.');
+                    return;
+                }
+
+                $('#edit_id').val($(this).data('id'));
+                $('#edit_website').val($(this).data('website'));
+                $('#edit_priority').val($(this).data('priority'));
+                $('#edit_status').val($(this).data('status'));
+
+                titleEditor.setData($(this).data('title'));
+
+                editModal.show();
             });
 
-            // ============================
-            // Edit task inline
-            // ============================
-            // Inline edit task
-            $('#tasks_table').on('keypress', '.edit_title, .edit_website, .edit_priority', function(e) {
-                if (e.which !== 13) return; // Only Enter key triggers
+            /* =============================
+               SAVE EDIT
+            ============================= */
+            $('#save_task_changes').on('click', function () {
 
-                const row = $(this).closest('tr');
-                const id = row.data('id');
-                const title = row.find('.edit_title').val().trim();
-                const priority = row.find('.edit_priority').val();
-                const website = row.find('.edit_website').val().trim();
-                const status = row.find('.toggle-status').is(':checked') ? 'completed' : 'pending';
+                if (!titleEditor) return;
+
+                const id = $('#edit_id').val();
+                const title = titleEditor.getData().trim();
+                const website = $('#edit_website').val().trim();
+                const priority = $('#edit_priority').val();
+                const status = $('#edit_status').val();
+
+                if (!title) {
+                    alert('Title is required');
+                    return;
+                }
 
                 $.post('tasks_ajax.php', {
                     action: 'edit',
                     id,
                     title,
-                    priority,
                     website,
+                    priority,
                     status
-                }, function(res) {
+                }, function (res) {
                     if (res.trim() === 'success') {
-                        // Update status text and details without full reload
-                        row.find('.status-text').text(status.charAt(0).toUpperCase() + status.slice(1));
-                        row.removeClass('priority-High priority-Medium priority-Low')
-                            .addClass('priority-' + priority);
+                        editModal.hide();
+                        fetchTasks();
+                        fetchSummary();
                     } else {
                         alert('Failed to update task');
                     }
                 });
             });
 
-
-            // ============================
-            // Delete task
-            // ============================
-            $('#tasks_table').on('click', '.delete_task', function() {
+            /* =============================
+               DELETE TASK
+            ============================= */
+            $('#tasks_table').on('click', '.delete_task', function () {
                 if (!confirm('Delete task?')) return;
                 const id = $(this).data('id');
+
                 $.get('tasks_ajax.php', {
                     action: 'delete',
                     id
-                }, function() {
+                }, function () {
                     fetchTasks();
                     fetchSummary();
                 });
             });
 
-            // ============================
-            // Functions
-            // ============================
-            function fetchTasks(page = 1) {
-                const status = $('#filter_status').val();
-                const priority = $('#filter_priority').val();
-                const website = $('#filter_website').val();
-                const search = $('#filter_search').val().trim();
+            /* =============================
+               STATUS TOGGLE
+            ============================= */
+            $(document).on('change', '.toggle-status', function () {
+                const checkbox = $(this);
+                const id = checkbox.data('id');
+                const status = checkbox.is(':checked') ? 'completed' : 'pending';
 
+                $.post('tasks_ajax.php', {
+                    action: 'markcomplete',
+                    id,
+                    status
+                }, function (res) {
+                    if (res.trim() === 'success') {
+                        fetchTasks();
+                        fetchSummary();
+                    } else {
+                        checkbox.prop('checked', !checkbox.is(':checked'));
+                        alert('Failed to update status');
+                    }
+                });
+            });
+
+            $('#sliderMarkDone').on('click', function () {
+
+                if (!sliderTasks.length) return;
+
+                // ✅ ALWAYS get task here
+                const task = sliderTasks[sliderIndex];
+
+                if (!task || task.status === 'completed') {
+                    alert('Task already completed');
+                    return;
+                }
+
+                $.post('tasks_ajax.php', {
+                    action: 'markcomplete',
+                    id: task.id,
+                    status: 'completed'
+                }, function (res) {
+
+                    if (res.trim() !== 'success') {
+                        alert('Failed to update task');
+                        return;
+                    }
+
+                    // Update local status
+                    task.status = 'completed';
+
+                    // Remove completed task from slider
+                    sliderTasks.splice(sliderIndex, 1);
+
+                    // Fix index
+                    if (sliderIndex >= sliderTasks.length) {
+                        sliderIndex = sliderTasks.length - 1;
+                    }
+
+                    // Update UI
+                    if (sliderTasks.length === 0) {
+                        sliderModal.hide();
+                    } else {
+                        renderSliderTask();
+                    }
+
+                    fetchTasks();
+                    fetchSummary();
+                });
+            });
+
+            /* =============================
+               EXPORT
+            ============================= */
+            $('#export_stats').click(function (e) {
+                e.preventDefault();
+                window.location.href = 'task_export.php?type=stats';
+            });
+
+            /* =============================
+               HELPERS
+            ============================= */
+            function fetchTasks(page = 1) {
                 $.get('tasks_ajax.php', {
                     action: 'fetch',
-                    status,
-                    priority,
-                    website,
-                    search,
+                    status: $('#filter_status').val(),
+                    priority: $('#filter_priority').val(),
+                    website: $('#filter_website').val(),
+                    search: $('#filter_search').val().trim(),
                     page
-                }, function(data) {
+                }, function (data) {
                     $('#tasks_table').html(data);
                 });
             }
@@ -466,52 +795,107 @@
             function fetchSummary() {
                 $.get('tasks_ajax.php', {
                     action: 'summary'
-                }, function(data) {
+                }, function (data) {
                     $('#summary_section').html(data);
                 });
             }
 
-            $(document).ready(function() {
-                $('#export_stats').click(function(e) {
-                    e.preventDefault();
-                    window.location.href = 'task_export.php?type=stats';
-                });
-            });
+            // slider related code 
+            let sliderTasks = [];
+            let sliderIndex = 0;
+            let sliderModal = new bootstrap.Modal(
+                document.getElementById('taskSliderModal')
+            );
 
-            // Toggle task status
-            $(document).on('change', '.toggle-status', function() {
-                const checkbox = $(this);
-                const id = checkbox.data('id');
-                const newStatus = checkbox.is(':checked') ? 'completed' : 'pending';
+            $('#openTaskSlider').on('click', function () {
 
-                $.ajax({
-                    url: 'tasks_ajax.php',
-                    type: 'POST',
-                    data: {
-                        action: 'markcomplete',
-                        id: id,
-                        status: newStatus
-                    },
-                    success: function(response) {
-                        if (response.trim() === 'success') {
-                            // Refresh the table after status update
-                            fetchTasks(); // Your existing function to reload tasks
-                            fetchSummary(); // Update summary counts
-                        } else {
-                            alert('Failed to update task status.');
-                            checkbox.prop('checked', !checkbox.is(':checked'));
-                        }
-                    },
-                    error: function() {
-                        alert('Failed to update task status.');
-                        checkbox.prop('checked', !checkbox.is(':checked'));
+                // manual open should ignore auto-close rule
+                sliderAutoClosed = true;
+
+                $.getJSON('tasks_ajax.php', { action: 'slider_tasks' }, function (data) {
+
+                    if (!data.length) {
+                        alert('No tasks found');
+                        return;
                     }
+
+                    sliderTasks = data;
+                    sliderIndex = 0;
+                    renderSliderTask();
+                    sliderModal.show();
                 });
             });
+
+            $('#sliderNext').on('click', function () {
+                if (sliderIndex < sliderTasks.length - 1) {
+                    sliderIndex++;
+                    renderSliderTask();
+                }
+            });
+
+            $('#sliderPrev').on('click', function () {
+                if (sliderIndex > 0) {
+                    sliderIndex--;
+                    renderSliderTask();
+                }
+            });
+
+            $('#taskSliderModal').on('hidden.bs.modal', function () {
+
+                // 🔒 remember user choice for this session
+                sessionStorage.setItem('taskSliderClosed', '1');
+                sliderAutoClosed = true;
+
+                $('#sliderTitle').empty();
+                $('#sliderWebsite').text('');
+                $('#sliderStatus').text('');
+                $('#sliderCounter').text('');
+                $('#sliderPriority').text('');
+            });
+
+            function renderSliderTask() {
+
+                if (!sliderTasks.length) return;
+
+                const task = sliderTasks[sliderIndex]; // ✅ required
+
+                $('#sliderTitle').html(task.title || '<i class="text-muted">No description</i>');
+                $('#sliderWebsite').text(task.website || '—');
+
+                $('#sliderStatus')
+                    .text(task.status)
+                    .removeClass('bg-success bg-warning bg-secondary')
+                    .addClass(
+                        task.status === 'completed'
+                            ? 'bg-success'
+                            : 'bg-warning text-dark'
+                    );
+
+                $('#sliderCounter').text(
+                    `Task ${sliderIndex + 1} of ${sliderTasks.length}`
+                );
+
+                $('#sliderPriority')
+                    .text(task.priority)
+                    .removeClass('bg-danger bg-warning bg-success text-dark')
+                    .addClass(
+                        task.priority === 'High'
+                            ? 'bg-danger'
+                            : task.priority === 'Medium'
+                                ? 'bg-warning text-dark'
+                                : 'bg-success'
+                    );
+
+                $('#sliderPrev').prop('disabled', sliderIndex === 0);
+                $('#sliderNext').prop('disabled', sliderIndex === sliderTasks.length - 1);
+
+                // ✅ Disable mark-done button if already completed
+                $('#sliderMarkDone').prop('disabled', task.status === 'completed');
+            }
 
         });
     </script>
-
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 

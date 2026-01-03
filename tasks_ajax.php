@@ -25,10 +25,14 @@ if ($action == 'create') {
 
     $query = "SELECT * FROM tasks WHERE 1";
 
-    if ($status != 'all') $query .= " AND status='$status'";
-    if ($priority != 'all') $query .= " AND priority='$priority'";
-    if ($website != 'all') $query .= " AND website='$website'";
-    if ($search != '') $query .= " AND title LIKE '%" . mysqli_real_escape_string($con, $search) . "%'";
+    if ($status != 'all')
+        $query .= " AND status='$status'";
+    if ($priority != 'all')
+        $query .= " AND priority='$priority'";
+    if ($website != 'all')
+        $query .= " AND website='$website'";
+    if ($search != '')
+        $query .= " AND title LIKE '%" . mysqli_real_escape_string($con, $search) . "%'";
 
     // Total count for pagination
     $totalResult = mysqli_query($con, $query);
@@ -80,15 +84,31 @@ if ($action == 'create') {
     <td class="text-start">
         <input type="checkbox" class="form-check-input toggle-status" data-id="' . $task['id'] . '" ' . ($task['status'] == 'completed' ? 'checked' : '') . '>
 <span class="badge text-bg-' . ($task['status'] == 'completed' ? 'success' : 'warning') . '">
-    ' . ucfirst($task['status']) . '
+    ' . ucfirst($task['status']=='pending'?$task['status']:'Done') . '
 </span>
     </td>
-    <td class="text-center">
-        <button class="icon-btn delete_task text-danger " data-id="' . $task['id'] . '" title="Delete Task">
-           <span class="badge text-bg-danger">delete</span>
-        </button>
-    </td>
-</tr>';
+        <td class="text-center">
+            <button 
+                class="btn btn-sm btn-outline-primary edit_task"
+                data-id="' . $task['id'] . '"
+                data-title="' . htmlspecialchars($task['title'], ENT_QUOTES) . '"
+                data-website="' . htmlspecialchars($task['website'], ENT_QUOTES) . '"
+                data-priority="' . $task['priority'] . '"
+                data-status="' . $task['status'] . '"
+                title="Edit Task"
+            >
+                <i class="bi bi-pencil-square"></i> Edit
+            </button>
+        
+            <button 
+                class="btn btn-sm btn-outline-danger delete_task  ms-2"
+                data-id="' . $task['id'] . '"
+                title="Delete Task"
+            >
+                <i class="bi bi-trash"></i> Delete
+            </button>
+        </td>
+    </tr>';
     }
 
     echo '</tbody></table>';
@@ -121,12 +141,29 @@ if ($action == 'create') {
 
     echo '</ul></nav>';
 } elseif ($action == 'edit') {
+
     $id = intval($_POST['id']);
-    $title = mysqli_real_escape_string($con, $_POST['title']);
-    $status = mysqli_real_escape_string($con, $_POST['status']);
-    $priority = mysqli_real_escape_string($con, $_POST['priority']);
+    $title = $_POST['title']; // RAW HTML
     $website = mysqli_real_escape_string($con, $_POST['website']);
-    mysqli_query($con, "UPDATE tasks SET title='$title', status='$status', priority='$priority', website='$website' WHERE id=$id");
+    $priority = mysqli_real_escape_string($con, $_POST['priority']);
+    $status = mysqli_real_escape_string($con, $_POST['status']);
+
+    $title = mysqli_real_escape_string($con, $title);
+
+    $sql = "
+        UPDATE tasks 
+        SET title='$title',
+            website='$website',
+            priority='$priority',
+            status='$status'
+        WHERE id=$id
+    ";
+
+    if (!mysqli_query($con, $sql)) {
+        echo "error: " . mysqli_error($con);
+        exit;
+    }
+
     echo "success";
 } elseif ($action == 'delete') {
     $id = intval($_GET['id']);
@@ -193,6 +230,25 @@ if ($action == 'create') {
     $status = $_POST['status'] === 'completed' ? 'completed' : 'pending';
     $completedAt = ($status === 'completed') ? "NOW()" : "NULL";
     $query = "UPDATE tasks SET status = '$status', completed_at = $completedAt WHERE id = $id";
-    if (mysqli_query($con, $query)) echo "success";
-    else echo "error: " . mysqli_error($con);
+    if (mysqli_query($con, $query))
+        echo "success";
+    else
+        echo "error: " . mysqli_error($con);
+} elseif ($action === 'slider_tasks') {
+
+    $res = mysqli_query($con, "
+        SELECT id, title, website, priority, status
+        FROM tasks
+        WHERE status = 'pending'
+        ORDER BY FIELD(priority, 'High', 'Medium', 'Low'), created_at DESC
+    ");
+
+    $tasks = [];
+    while ($row = mysqli_fetch_assoc($res)) {
+        $tasks[] = $row; // title contains full CKEditor HTML
+    }
+
+    header('Content-Type: application/json');
+    echo json_encode($tasks);
+    exit;
 }
