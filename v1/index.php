@@ -25,6 +25,9 @@
                 <button class="btn btn-primary btn-sm" id="btnAddTask" data-bs-toggle="modal" data-bs-target="#taskModal">
                     <i class="fas fa-plus me-1"></i> New Task <kbd class="ms-1 bg-dark text-light" style="font-size: 0.7rem">T</kbd>
                 </button>
+                <a href="../index.php" class="btn btn-outline-light btn-sm ms-3" id="darkModeToggle">
+                    Go To Taskflow
+</a>
             </div>
         </div>
     </nav>

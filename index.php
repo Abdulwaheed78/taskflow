@@ -233,6 +233,18 @@
 </head>
 
 <body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold text-primary" href="v1/">
+                <i class="bi bi-check2-square me-2"></i>CareComp Tasks
+            </a>
+            <div class="d-flex gap-2">
+                <a href="index.php" class="btn btn-outline-secondary btn-sm">Taskflow</a>
+                <a href="v1/" class="btn btn-outline-primary btn-sm">Go to v1</a>
+            </div>
+        </div>
+    </nav>
+
     <div class="container-fluid mt-4">
         <div class="row g-3">
 
