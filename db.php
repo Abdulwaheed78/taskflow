@@ -1,7 +1,7 @@
 <?php
 $host = "localhost";
-$user = "root";
-$pass = "";
+$user = "dev";
+$pass = "DevPass123!";
 $db   = "carecomp_tasks";
 
 $con = mysqli_connect($host, $user, $pass, $db);
